@@ -1,29 +1,91 @@
-from Interval import Interval
+from typing import List
+import math as m
+from Interval import *
 
-def det(delta, coef):
-    A = [[Interval(coef[0] - delta, coef[0] + delta), Interval(coef[1] - delta, coef[1] + delta)],
-      [Interval(coef[2] - delta, coef[2] + delta), Interval(coef[3] - delta, coef[3] + delta)]]
+
+def det(A:IntMatrix):
     return A[0][0] * A[1][1] - A[0][1] * A[1][0]
 
 
-def minimum_delta(a, b, eps, coef):
-    while b - a > eps:
-        x = (b + a) / 2.0
-        detA = det(x, coef)
-        if detA.a < 0 and detA.b > 0:
-            b = x
+def min_delta_search(A:Matrix, delta: Number, radCoeffs: Matrix) -> bool:
+    def f(A:Matrix, delta: Number, radCoeffs: Matrix):
+        radA = [[delta * radCoeffs[0][0], delta * radCoeffs[0][1]],
+                [delta * radCoeffs[1][0], delta * radCoeffs[1][1]]]
+        A_int = midrad(A, radA)
+        det_A = det(A_int)
+        if 0.0 in det_A:
+            return True
         else:
-            a = x
-    detA = det(b, coef)
-    return b, detA
-    
+            return False
+        
+    min_delta = delta
+    a = 0
+    b = delta
+    while not m.isclose(a, b, rel_tol=1e-14):
+        min_delta = (a+b)/2
+        if f(A, min_delta, radCoeffs):
+            b = min_delta
+        else:
+            a = min_delta
+    return (a+b)/2
+
 
 if __name__ == "__main__":
-    eps = 0.0001
-    coef = list(map(float, input().split()))
-    delta, detA = minimum_delta(0, min(coef), eps, coef)
-    print(f"delta = {delta}, ({detA.a}, {detA.b})")
+    print("Enter A_11, A_12, A_21, A_22: ", end='')
+    a, b, c, d = [float(n) for n in input().split()]
+    if (a < 0 or b < 0 or c < 0 or d < 0):
+        raise ValueError("Values must be non-negative.")
+    delta = min(a, b, c, d)
+    print(delta)
+    A_orig = [[a,b],[c,d]]
+
+    ############# rad томографии #############
+    print("\nтомография\n")
+    radCoeffs = [[1, 1],
+                 [1, 1]]
+
+    radA = [[delta * radCoeffs[0][0], delta * radCoeffs[0][1]],
+            [delta * radCoeffs[1][0], delta * radCoeffs[1][1]]]
+
+    print("radA =\n", radA)
+    A = midrad(A_orig, radA)
+    print("A = \n", A)
+    print(A)
+    det_A = det(A)
     
+    print(det_A)
+    if m.isclose(det_A.mid, 0.0):
+        print("delta = 0")
+    elif 0.0 in Interval(det_A.left, det_A.right):
+        min_delta = min_delta_search(A_orig, delta, radCoeffs)
+        print("min delta = ", min_delta)
+        radA = [[min_delta * radCoeffs[0][0], min_delta * radCoeffs[0][1]],
+                [min_delta * radCoeffs[1][0], min_delta * radCoeffs[1][1]]]
+        print(det(midrad(A_orig, radA)))
+
+    ############# rad регрессии #############
+    print("\nрегрессия\n")
+    radCoeffs = [[1, 0],
+                 [1, 0]]
+
+    radA = [[delta * radCoeffs[0][0], delta * radCoeffs[0][1]],
+            [delta * radCoeffs[1][0], delta * radCoeffs[1][1]]]
+
+    print("radA =\n", radA)
+    A = midrad(A_orig, radA)
+    print("A = \n", A)
+    print(A)
+    det_A = det(A)
+    
+    print(det_A)
+    if m.isclose(det_A.mid, 0.0):
+        print("delta = 0")
+    elif 0.0 in Interval(det_A.left, det_A.right):
+        min_delta = min_delta_search(A_orig, delta, radCoeffs)
+        print("min delta = ", min_delta)
+        radA = [[min_delta * radCoeffs[0][0], min_delta * radCoeffs[0][1]],
+                [min_delta * radCoeffs[1][0], min_delta * radCoeffs[1][1]]]
+        print(det(midrad(A_orig, radA)))
 
 
-        
+        # 1.05 1 0.95 1
